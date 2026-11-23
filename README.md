@@ -1,22 +1,29 @@
 # Windows AI CLI Toolkit
 
-A Lovable-credit-free local workflow using GitHub + OpenCode CLI.
+A local development workflow using GitHub + OpenAI Codex CLI and OpenCode.
 
-## Setup
+## Install
 1. Open PowerShell and run `scripts/setup-ai-cli.ps1`.
-2. Close/reopen PowerShell to refresh PATH.
-3. Run `npm install -g opencode-ai`.
-4. Run `gh auth login` and authenticate to GitHub.
-5. Run `opencode`, then `/connect` to configure your model provider. AI inference may still incur provider fees.
+2. Restart PowerShell if PATH does not refresh.
+3. Install both agents:
+   `npm install -g @openai/codex`
+   `npm install -g opencode-ai`
+4. Authenticate GitHub: `gh auth login`.
+5. Run `codex` and sign in with ChatGPT where available, or configure API access.
+6. Run `opencode`, then `/connect` to configure a provider.
 
-## Audit repositories first
-Run:
+Model access may be subject to subscription limits or separate API usage fees. Do not store credentials in project files.
 
+## Audit only
+Run a Codex audit (default):
 ```powershell
 .\scripts\audit-repositories.ps1
 ```
+Or use OpenCode:
+```powershell
+.\scripts\audit-repositories.ps1 -Agent opencode
+```
+The script clones selected repos under `$HOME\AIProjects` and runs a read-only audit prompt. It does not edit, commit, push, deploy or delete. Pass a custom list with `-Repos @("owner/repo")`.
 
-This clones the selected repos to `$HOME\AIProjects` and runs an audit-only prompt. It does not write changes, commit, push, or deploy. You may edit the `Repos` parameter to include additional repos.
-
-## Implementation workflow
-After reviewing each audit report, start OpenCode in that repo interactively and give it one P1 task at a time. Require it to run relevant tests/build/lint, review the diff, and create a feature branch. Do not permit secrets or production changes. Keep merges/deploys manual.
+## Build workflow
+After reviewing the audit, run Codex or OpenCode interactively in the repo. Work one prioritized task at a time, require tests/build/lint, review diffs, use a feature branch, and keep merge/deployment manual.
