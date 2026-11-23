@@ -1,42 +1,30 @@
-# Sequential audit runner for repositories. Does not auto-commit, push, or deploy.
-# First install OpenCode and authenticate a model provider, then run this script.
+# Sequential repository audit runner; audit-only, no edits/commits/push/deploy.
 param(
   [string]$Workspace = "$HOME\AIProjects",
-  [string[]]$Repos = @(
-    "chandiniakbar/MYSKILLS",
-    "chandiniakbar/remix-of-local-connect-hub"
-  )
+  [ValidateSet("codex","opencode")][string]$Agent = "codex",
+  [string[]]$Repos = @("chandiniakbar/MYSKILLS","chandiniakbar/remix-of-local-connect-hub")
 )
 $ErrorActionPreference = "Stop"
-if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { throw "GitHub CLI (gh) not installed." }
-if (-not (Get-Command opencode -ErrorAction SilentlyContinue)) { throw "OpenCode CLI not installed. Run npm install -g opencode-ai." }
+if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { throw "GitHub CLI (gh) is missing." }
+if (-not (Get-Command $Agent -ErrorAction SilentlyContinue)) { throw "$Agent CLI is missing. Run setup-ai-cli.ps1 and install it." }
 New-Item -ItemType Directory -Force -Path $Workspace | Out-Null
-
 $prompt = @'
-Perform a careful repository audit ONLY. Do not edit files, commit, push, deploy, delete data, or expose secrets.
-Inspect the project structure, README, package scripts, routes, UI, backend integrations, TODOs, test coverage, security, accessibility, and production readiness.
-Do not read or output secret values from .env, credentials, tokens, or key files. Report if secret files are tracked and recommend rotation if exposure is possible.
-Create a concise audit report in your response with:
-1. project summary and stack
-2. verified incomplete tasks, sorted P0/P1/P2
-3. risks/blockers and evidence (file paths)
-4. suggested implementation plan split into small milestones
-5. commands to validate changes.
-Do not assume mock data is real. Mark any unverified conclusions.
+Audit this repository ONLY. Do not modify files, commit, push, deploy, delete data, or expose secrets.
+Review structure, README, scripts, dependencies, routes, UI, backend, TODOs, tests, security, accessibility and production readiness.
+Do not open, print or copy secret values from .env, credentials, tokens, or keys. Note tracked sensitive files and advise rotation if exposure is possible.
+Respond with: verified project summary; incomplete tasks sorted P0/P1/P2 with file evidence; blockers and risks; milestone implementation plan; test/build/lint commands; clear uncertainty labels. Never present sample data as real.
 '@
-
 foreach ($full in $Repos) {
-  $name = ($full -split "/")[-1]
-  $path = Join-Path $Workspace $name
-  if (-not (Test-Path (Join-Path $path ".git"))) {
-    gh repo clone $full $path
+  $repoName = ($full -split "/")[-1]
+  $dir = Join-Path $Workspace $repoName
+  if (-not (Test-Path (Join-Path $dir ".git"))) {
+    gh repo clone $full $dir
     if ($LASTEXITCODE -ne 0) { Write-Warning "Clone failed: $full"; continue }
   }
-  Write-Host "`n===== AUDIT: $full =====" -ForegroundColor Cyan
-  Push-Location $path
+  Write-Host "`n===== $Agent AUDIT: $full =====" -ForegroundColor Cyan
+  Push-Location $dir
   try {
-    opencode run $prompt
-  } finally {
-    Pop-Location
-  }
+    if ($Agent -eq "codex") { codex exec --full-auto $prompt }
+    else { opencode run $prompt }
+  } finally { Pop-Location }
 }
