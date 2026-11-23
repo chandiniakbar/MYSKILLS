@@ -24,7 +24,7 @@ foreach ($full in $Repos) {
   Write-Host "`n===== $Agent AUDIT: $full =====" -ForegroundColor Cyan
   Push-Location $dir
   try {
-    if ($Agent -eq "codex") { codex exec --full-auto $prompt }
+    if ($Agent -eq "codex") { codex exec --sandbox read-only --ask-for-approval never $prompt }
     else { opencode run $prompt }
   } finally { Pop-Location }
 }
